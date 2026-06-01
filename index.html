@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Analizator i generator Lotto</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f6f7fb}body{margin:0}.wrap{max-width:1220px;margin:auto;padding:24px}.card{background:white;border:1px solid #e4e7ef;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 8px 24px #18203312}h1{margin:0 0 8px;font-size:30px}h2{margin:0 0 12px;font-size:20px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}.col3{grid-column:span 3}.col4{grid-column:span 4}.col6{grid-column:span 6}.col8{grid-column:span 8}.col12{grid-column:span 12}@media(max-width:850px){.col3,.col4,.col6,.col8{grid-column:span 12}}label{display:block;font-weight:650;margin-bottom:6px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #cfd6e6;border-radius:10px;padding:10px;background:#fff}textarea{min-height:150px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}button{border:0;border-radius:12px;padding:11px 16px;font-weight:750;cursor:pointer;background:#2345ff;color:white;margin:2px}button.secondary{background:#e9ecf5;color:#172033}.muted{color:#5d667c}.pill{display:inline-block;border-radius:999px;background:#eef1ff;padding:6px 10px;margin:3px;font-weight:650}.result{font-size:18px;line-height:1.5}.warn{background:#fff8df;border-color:#f3d66b}.ok{background:#effaf2;border-color:#9ad6aa}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:8px;border-bottom:1px solid #edf0f6;text-align:left;vertical-align:top}th{background:#f8f9fd}.small{font-size:13px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{background:#e9ecf5;color:#172033}.tab.active{background:#2345ff;color:white}.hidden{display:none}.footer{font-size:12px;color:#697287;margin-top:16px}.nums{font-size:20px;line-height:1.6}.num{display:inline-block;min-width:28px;text-align:center;border-radius:999px;background:#eef1ff;padding:5px 7px;margin:3px;font-weight:800}.score{color:#2345ff;font-weight:800}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.step{border-left:4px solid #2345ff;background:#f8f9ff}.badge{display:inline-block;border-radius:8px;padding:3px 7px;font-weight:800}.good{background:#e6f7ec;color:#116b2f}.mid{background:#fff3cd;color:#765600}.bad{background:#fde7e9;color:#8a1f2d}.nowrap{white-space:nowrap}.hint{background:#f3f6ff;border-color:#cdd7ff}.ultra{background:#eefcf8;border-color:#7adbbd}.danger{background:#fff1f1;border-color:#ffb7b7}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Analizator prawdopodobieństwa i generator liczb Lotto</h1>
+<p class="muted">Gry liczbowe z lotto.pl: Lotto, Lotto Plus, Eurojackpot, Keno, Szybkie 600, Multi Multi, Multi Multi Plus, Mini Lotto, Kaskada, Ekstra Pensja, Ekstra Premia oraz Super Szansa. Aplikacja liczy prawdopodobieństwo, analizuje historię losowań oraz generuje zestawy albo wybraną pulę liczb według strategii statystycznych.</p>
+<div class="tabs">
+<button class="tab active" data-tab="calc">Kalkulator</button>
+<button class="tab" data-tab="history">Baza i analiza</button>
+<button class="tab" data-tab="advanced">Zaawansowana analiza</button>
+<button class="tab" data-tab="generator">Generator</button>
+<button class="tab" data-tab="help">Instrukcja</button>
+</div>
+
+<section id="calc" class="card">
+<h2>Kalkulator prawdopodobieństwa</h2>
+<div class="grid">
+<div class="col4"><label>Gra</label><select id="game"></select></div>
+<div class="col4"><label>Ile liczb typujesz?</label><input id="picked" type="number" min="1" value="6"></div>
+<div class="col4"><label>Minimum trafień</label><input id="hits" type="number" min="0" value="3"></div>
+<div class="col4 extraField hidden"><label>Ile liczb dodatkowych typujesz?</label><input id="extraPicked" type="number" min="1" value="1"></div>
+<div class="col4 extraField hidden"><label>Minimum trafień dodatkowych</label><input id="extraHits" type="number" min="0" value="1"></div>
+<div class="col12"><button id="calcBtn">Oblicz</button></div>
+</div>
+<div id="calcOut" class="card ok result"></div>
+</section>
+
+<section id="history" class="card hidden">
+<h2>Baza losowań i analiza historii</h2>
+<div class="grid">
+<div class="col4"><label>Gra</label><select id="histGame"></select></div>
+<div class="col4"><label>Rozmiar paczki/grupy</label><input id="groupSize" type="number" min="2" max="10" value="3"></div>
+<div class="col4"><label>Ile wyników pokazać?</label><input id="topN" type="number" min="5" max="100" value="20"></div>
+<div class="col3"><label>LOTTO OpenAPI key</label><input id="apiKey" type="password" placeholder="secret / API key"></div>
+<div class="col3"><label>Liczba wyników z API</label><input id="apiSize" type="number" min="1" max="100" value="20"></div>
+<div class="col3"><label>Sortowanie</label><select id="apiOrder"><option value="DESC">Najnowsze najpierw</option><option value="ASC">Najstarsze najpierw</option></select></div>
+<div class="col3"><label>Data odniesienia</label><input id="apiDate" type="date"></div>
+<div class="col12"><div class="flex"><button id="fetchOfficialBtn">Pobierz aktualne losowanie</button><button class="secondary" id="fetchLottoPageBtn">Pobierz z fallbacków</button><button class="secondary" id="saveDbBtn">Zapisz bazę lokalnie</button><button class="secondary" id="loadDbBtn">Wczytaj lokalną bazę</button><button class="secondary" id="clearDbBtn">Wyczyść pole</button></div></div>
+<div class="col12"><label>Historia losowań</label><textarea id="draws" placeholder="Wklej losowania, po jednym w wierszu. Gry z liczbami dodatkowymi: główne | dodatkowe, np. Eurojackpot: 1 4 8 22 35 | 3 7"></textarea></div>
+<div class="col12"><button id="analyzeBtn">Analizuj powtarzalność</button> <button class="secondary" id="demoBtn">Wstaw przykładowe dane</button></div>
+<div class="col12 small muted">Dla Multi Multi możesz podawać godzinę w wierszu, np. <span class="mono">2026-05-31 14:00: 1 2 ...</span> albo <span class="mono">2026-05-31 22:00: 1 2 ...</span>. Aplikacja rozdzieli analizę popołudniową i wieczorną/nocną oraz pokaże różnice powtarzalności.</div>
+</div>
+<div id="fetchOut"></div><div id="histOut"></div>
+</section>
+
+
+<section id="advanced" class="card hidden">
+<h2>Zaawansowana analiza wzorców</h2>
+<div class="card hint small"><b>Prostszy przepływ:</b> 1) wklej albo pobierz historię w zakładce „Baza i analiza”, 2) wybierz grę tutaj, 3) kliknij analizę. Niżej dostaniesz ranking liczb, zależności „po liczbie X”, zależności 14:00/22:00 oraz sugestie dla generatora.</div>
+<div class="grid">
+<div class="col3"><label>Gra</label><select id="advGame"></select></div>
+<div class="col3"><label>Ile wyników pokazać?</label><input id="advTopN" type="number" min="5" max="100" value="20"></div>
+<div class="col3"><label>Waga świeżości historii</label><input id="halfLife" type="number" min="5" max="500" value="60"></div>
+<div class="col3"><label>Minimalna liczba przypadków</label><input id="minSupport" type="number" min="2" max="200" value="5"></div>
+<div class="col3"><label>Warunek: po liczbie</label><input id="conditionNum" type="number" min="1" placeholder="np. 17"></div>
+<div class="col3"><label>Warunek: losowanie</label><select id="conditionSlot"><option value="any">dowolne</option><option value="14:00">po 14:00</option><option value="22:00">po 22:00 / nocnym</option></select></div>
+<div class="col3"><label>Analiza następnych losowań</label><select id="lookAhead"><option value="1">tylko następne</option><option value="2">następne 2</option><option value="3">następne 3</option></select></div>
+<div class="col3"><label>Przedziały liczb</label><input id="rangeSize" type="number" min="2" max="20" value="10"></div>
+<div class="col12"><button id="advancedBtn">Analizuj matematycznie</button> <button id="ultraBtn" class="secondary">Tryb 99,9%: filtr silnych powtórzeń</button> <button class="secondary" id="copyBestToGeneratorBtn">Ustaw generator pod najlepszy model</button></div>
+</div>
+<div class="card warn small">Uczciwe losowanie nadal jest losowe. Ta sekcja nie daje gwarancji, ale matematycznie mierzy warunkowe odchylenia: lift, Z-score, prawdopodobieństwo warunkowe, opóźnienia, recencyjność, wzorce po losowaniu dziennym/nocnym oraz „po liczbie X pojawia się Y/grupa/przedział”.</div>
+<div id="advancedOut"></div>
+</section>
+
+<section id="generator" class="card hidden">
+<h2>Generator liczb do wybrania</h2>
+<div class="grid">
+<div class="col4"><label>Gra</label><select id="genGame"></select></div>
+<div class="col4"><label>Tryb generowania</label><select id="genMode"><option value="sets">Kupony / zestawy</option><option value="pool">Wybrana pula X liczb</option></select></div>
+<div class="col4"><label>Strategia</label><select id="strategy"><option value="balanced">Zbalansowana: częste + zimne + pary</option><option value="hot">Najczęstsze liczby</option><option value="cold">Najrzadsze liczby</option><option value="random">Czysto losowa</option><option value="pairs">Najczęstsze pary i paczki</option><option value="conditional">Warunkowa: po liczbach i noc/dzień</option><option value="math">Matematyczny ranking: Z-score + lift + opóźnienie</option></select></div>
+<div class="col4 setOnly"><label>Ile zestawów?</label><input id="setsCount" type="number" min="1" max="200" value="5"></div>
+<div class="col4 setOnly"><label>Liczb głównych w zestawie</label><input id="genPick" type="number" min="1" value="6"></div>
+<div class="col4 poolOnly hidden"><label>Ile liczb głównych wygenerować?</label><input id="poolPick" type="number" min="1" value="10"></div>
+<div class="col4 extraGen hidden"><label>Liczb dodatkowych</label><input id="genExtraPick" type="number" min="1" value="1"></div>
+<div class="col4 extraPoolOnly hidden"><label>Ile dodatkowych wygenerować?</label><input id="poolExtraPick" type="number" min="1" value="1"></div>
+<div class="col4"><label>Losowość / dywersyfikacja</label><input id="noise" type="range" min="0" max="100" value="35"></div>
+<div class="col12"><button id="generateBtn">Generuj</button></div>
+</div>
+<div class="card warn small">Nie istnieje strategia, która gwarantuje trafienie. Generator dobiera zestawy pod kątem wykrytych wzorców: częstości, par, paczek, recencyjności, opóźnień, zależności warunkowych po poprzednim losowaniu oraz balansu kuponu.</div>
+<div id="genOut"></div>
+</section>
+
+<section id="help" class="card hidden">
+<h2>Instrukcja</h2>
+<p><b>Baza:</b> wklej losowania ręcznie albo pobierz je. Oficjalne LOTTO OpenAPI wymaga bezpłatnego klucza API w nagłówku <span class="mono">secret</span>. Bez klucza możesz użyć przycisku pobrania ostatniego wyniku z publicznej strony lotto.pl, o ile przeglądarka nie zablokuje CORS.</p><p><b>Multi Multi:</b> dla analizy różnic między losowaniem popołudniowym i wieczornym/nocnym wpisuj przy losowaniu godzinę <span class="mono">14:00</span> albo <span class="mono">22:00</span>. Program policzy osobno częstotliwość liczb/par/paczek i powtarzalność: 14→22, 22→14, 14→14 oraz 22→22.</p>
+<p><b>Generator:</b> najpierw wczytaj bazę losowań dla wybranej gry, a potem wygeneruj zestawy. Strategie „warunkowa” i „matematyczny ranking” korzystają z zależności: po liczbie A, po losowaniu 14:00/22:00, lift, Z-score, recencyjność, opóźnienie i pary.</p>
+<p class="muted">Częste wystąpienia w historii nie zmieniają matematycznej szansy w następnym losowaniu. To narzędzie analityczne, nie gwarancja wygranej.</p>
+</section>
+<div class="footer">Wersja offline: jeden plik HTML. Poza przyciskami pobierania wyników nie wysyła danych do internetu. Baza lokalna zapisuje się w localStorage przeglądarki.</div>
+</div>
+<script>
+const games={
+  lotto:{name:'Lotto — 6 z 49', api:'Lotto', pool:49, drawn:6, defaultPick:6, maxPick:12, type:'standard', page:'https://www.lotto.pl/lotto/wyniki-i-wygrane'},
+  lottoPlus:{name:'Lotto Plus — 6 z 49', api:'LottoPlus', pool:49, drawn:6, defaultPick:6, maxPick:12, type:'standard'},
+  euro:{name:'Eurojackpot — 5 z 50 + 2 z 12', api:'EuroJackpot', pool:50, drawn:5, extraPool:12, extraDrawn:2, defaultPick:5, maxPick:12, defaultExtraPick:2, maxExtraPick:12, type:'extra', page:'https://www.lotto.pl/eurojackpot/wyniki-i-wygrane/'},
+  keno:{name:'Keno — 20 z 70, typujesz 1–10', api:'Keno', pool:70, drawn:20, defaultPick:10, maxPick:10, type:'standard'},
+  szybkie600:{name:'Szybkie 600 — 6 z 32', api:'Szybkie600', pool:32, drawn:6, defaultPick:6, maxPick:6, type:'standard'},
+  multi:{name:'Multi Multi — 20 z 80, typujesz 1–10', api:'MultiMulti', pool:80, drawn:20, defaultPick:10, maxPick:10, type:'standard', page:'https://www.lotto.pl/multi-multi/wyniki-i-wygrane'},
+  multiPlus:{name:'Multi Multi Plus — 20 z 80, typujesz 1–10', api:'MultiMultiPlus', pool:80, drawn:20, defaultPick:10, maxPick:10, type:'standard'},
+  mini:{name:'Mini Lotto — 5 z 42', api:'MiniLotto', pool:42, drawn:5, defaultPick:5, maxPick:5, type:'standard'},
+  kaskada:{name:'Kaskada — 12 z 24', api:'Kaskada', pool:24, drawn:12, defaultPick:12, maxPick:12, type:'standard'},
+  pensja:{name:'Ekstra Pensja — 5 z 35 + 1 z 4', api:'EkstraPensja', pool:35, drawn:5, extraPool:4, extraDrawn:1, defaultPick:5, maxPick:5, defaultExtraPick:1, maxExtraPick:1, type:'extra'},
+  premia:{name:'Ekstra Premia — 5 z 35 + 1 z 4', api:'EkstraPremia', pool:35, drawn:5, extraPool:4, extraDrawn:1, defaultPick:5, maxPick:5, defaultExtraPick:1, maxExtraPick:1, type:'extra'},
+  superSzansa:{name:'Super Szansa — 7 cyfr 0–9', api:'SuperSzansa', pool:10, drawn:7, defaultPick:7, maxPick:7, type:'digits', allowRepeats:true}
+};
+function fillSelect(id){const s=document.getElementById(id); Object.entries(games).forEach(([k,g])=>{let o=document.createElement('option');o.value=k;o.textContent=g.name;s.appendChild(o)});}
+['game','histGame','advGame','genGame'].forEach(fillSelect); game.value='lotto'; histGame.value='lotto'; advGame.value='lotto'; genGame.value='lotto'; apiDate.valueAsDate=new Date();
+function comb(n,k){ if(k<0||k>n)return 0n; k=Math.min(k,n-k); let r=1n; for(let i=1;i<=k;i++) r=r*BigInt(n-k+i)/BigInt(i); return r; }
+function probExactly(pool,drawn,picked,hits){return Number(comb(picked,hits)*comb(pool-picked,drawn-hits))/Number(comb(pool,drawn));}
+function probAtLeast(pool,drawn,picked,hits){let sum=0; for(let i=hits;i<=Math.min(picked,drawn);i++) sum+=probExactly(pool,drawn,picked,i); return sum;}
+function fmtPct(x){return (x*100).toLocaleString('pl-PL',{maximumFractionDigits:10})+'%'}
+function oneIn(x){return x>0 ? '1 do '+(1/x).toLocaleString('pl-PL',{maximumFractionDigits:0}) : 'niemożliwe'}
+function syncGame(){const g=games[game.value]; picked.max=g.maxPick; picked.value=g.defaultPick; hits.max=Math.min(g.defaultPick,g.drawn); hits.value=Math.min(3,g.defaultPick,g.drawn); document.querySelectorAll('.extraField').forEach(el=>el.classList.toggle('hidden',g.type!=='extra')); if(g.type==='extra'){extraPicked.max=g.maxExtraPick; extraPicked.value=g.defaultExtraPick; extraHits.max=Math.min(g.defaultExtraPick,g.extraDrawn); extraHits.value=Math.min(g.defaultExtraPick,g.extraDrawn);} }
+game.addEventListener('change',syncGame); syncGame();
+calcBtn.onclick=()=>{const g=games[game.value], p=+picked.value, h=+hits.value; let exact=probExactly(g.pool,g.drawn,p,h); let atLeast=probAtLeast(g.pool,g.drawn,p,h); let html=`<b>${g.name}</b><br>Szansa dokładnie ${h} trafień głównych: <b>${fmtPct(exact)}</b> (${oneIn(exact)}).<br>Szansa co najmniej ${h} trafień głównych: <b>${fmtPct(atLeast)}</b> (${oneIn(atLeast)}).`; if(g.type==='extra'){const ep=+extraPicked.value, eh=+extraHits.value; let exactE=probExactly(g.extraPool,g.extraDrawn,ep,eh); let atLeastE=probAtLeast(g.extraPool,g.extraDrawn,ep,eh); html+=`<br>Szansa dokładnie ${eh} trafień dodatkowych: <b>${fmtPct(exactE)}</b> (${oneIn(exactE)}).<br>Szansa co najmniej ${eh} trafień dodatkowych: <b>${fmtPct(atLeastE)}</b> (${oneIn(atLeastE)}).<br><br>Łącznie dokładnie ${h}+${eh}: <b>${fmtPct(exact*exactE)}</b> (${oneIn(exact*exactE)}).<br>Łącznie co najmniej ${h}+${eh}: <b>${fmtPct(atLeast*atLeastE)}</b> (${oneIn(atLeast*atLeastE)}).`; } calcOut.innerHTML=html;}; calcBtn.click();
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');['calc','history','advanced','generator','help'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==b.dataset.tab));});
+function parseDraws(txt){return txt.split(/\n+/).map((line,idx)=>{let raw=line.trim(); if(!raw) return null; let timeMatch=raw.match(/(?:^|\D)(14|22)[:.]00(?:\D|$)/); let slot=timeMatch ? (timeMatch[1]==='14'?'14:00':'22:00') : null; let dateMatch=raw.match(/(\d{4}[-.]\d{2}[-.]\d{2}|\d{2}[-.]\d{2}[-.]\d{4})/); let drawNoMatch=raw.match(/(?:nr|losowania|draw)\D*(\d{3,})/i); let body=raw; if(raw.includes(':')){let parts=raw.split(':'); body=parts.slice(timeMatch?2:1).join(':')||raw;} body=body.replace(/\b(14|22)[:.]00\b/g,' '); body=body.replace(/\d{4}[-.]\d{2}[-.]\d{2}|\d{2}[-.]\d{2}[-.]\d{4}/g,' '); body=body.replace(/nr\D*\d{3,}/ig,' '); let parts=body.split('|'); let nums=(parts[0].match(/\d+/g)||[]).map(Number); let extra=(parts[1]?.match(/\d+/g)||[]).map(Number); return {nums:[...new Set(nums)].sort((a,b)=>a-b), extra:[...new Set(extra)].sort((a,b)=>a-b), slot, date:dateMatch?dateMatch[1]:null, drawNo:drawNoMatch?drawNoMatch[1]:null, order:idx, raw};}).filter(d=>d&&d.nums.length>0)}
+function formatDraw(d){return d.nums.join(' ') + (d.extra?.length ? ' | '+d.extra.join(' ') : '')}
+function addCount(map,key,v=1){map.set(key,(map.get(key)||0)+v)}
+function combos(arr,k,start=0,prefix=[],out=[]){if(prefix.length===k){out.push(prefix.join('-'));return out} for(let i=start;i<=arr.length-(k-prefix.length);i++) combos(arr,k,i+1,prefix.concat(arr[i]),out); return out}
+function topMap(map,n){return [...map.entries()].sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]))).slice(0,n)}
+function table(title,rows,head1='Element'){return `<div class="card"><h2>${title}</h2><table><tr><th>${head1}</th><th>Liczba wystąpień</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table></div>`}
+function stats(ds,gs=3){let nums=new Map(), pairs=new Map(), groups=new Map(), extras=new Map(), repeats=[]; ds.forEach((d,idx)=>{d.nums.forEach(x=>addCount(nums,x)); d.extra.forEach(x=>addCount(extras,x)); combos(d.nums,2).forEach(c=>addCount(pairs,c)); if(gs>=2&&d.nums.length>=gs) combos(d.nums,gs).forEach(c=>addCount(groups,c)); if(idx>0){let prev=new Set(ds[idx-1].nums); repeats.push(d.nums.filter(x=>prev.has(x)).length)}}); return {nums,pairs,groups,extras,repeats};}
+analyzeBtn.onclick=()=>{const g=games[histGame.value], ds=parseDraws(draws.value), n=+topN.value, gs=+groupSize.value; if(ds.length<2){histOut.innerHTML='<div class="card warn">Wklej lub pobierz co najmniej 2 losowania.</div>'; return} const s=stats(ds,gs); let avgRep=s.repeats.reduce((a,b)=>a+b,0)/s.repeats.length; let expected=g.drawn*g.drawn/g.pool; let html=`<div class="card ok result"><b>Przeanalizowano ${ds.length} losowań.</b><br>Średnia liczba powtórzeń względem poprzedniego losowania: <b>${avgRep.toFixed(2)}</b>. Oczekiwanie losowe dla tej gry: około <b>${expected.toFixed(2)}</b>.</div>`; if(histGame.value==='multi'||histGame.value==='multiPlus') html+=multiMultiComparison(ds,g,n,gs); html+=table('Najczęstsze liczby główne',topMap(s.nums,n),'Liczba'); if(s.extras.size) html+=table('Najczęstsze liczby dodatkowe',topMap(s.extras,n),'Liczba dodatkowa'); html+=table('Najczęstsze pary liczb głównych',topMap(s.pairs,n),'Para'); html+=table(`Najczęstsze paczki/grupy po ${gs} liczb głównych`,topMap(s.groups,n),'Paczka'); histOut.innerHTML=html;}
+function avg(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0}
+function repeatStatsFor(ds){let arr=[]; for(let i=1;i<ds.length;i++){let prev=new Set(ds[i-1].nums); arr.push(ds[i].nums.filter(x=>prev.has(x)).length)} return arr}
+function transitionRepeats(ds){let out={'14→22':[], '22→14':[], '14→14':[], '22→22':[], 'inne/bez godziny':[]}; for(let i=1;i<ds.length;i++){let prev=ds[i-1], cur=ds[i], key=(prev.slot&&cur.slot)?prev.slot.slice(0,2)+'→'+cur.slot.slice(0,2):'inne/bez godziny'; let prevSet=new Set(prev.nums); let repeated=cur.nums.filter(x=>prevSet.has(x)); (out[key]||out['inne/bez godziny']).push(repeated.length);} return out}
+function diffRows(aMap,bMap,n,labelA='14:00',labelB='22:00'){let keys=new Set([...aMap.keys(),...bMap.keys()]); return [...keys].map(k=>[k,aMap.get(k)||0,bMap.get(k)||0,(aMap.get(k)||0)-(bMap.get(k)||0)]).sort((x,y)=>Math.abs(y[3])-Math.abs(x[3])||String(x[0]).localeCompare(String(y[0]))).slice(0,n).map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="score">${r[3]>0?'+':''}${r[3]}</td></tr>`).join('')}
+function multiMultiComparison(ds,g,n,gs){let day=ds.filter(d=>d.slot==='14:00'), night=ds.filter(d=>d.slot==='22:00'); if(day.length===0&&night.length===0) return '<div class="card warn"><h2>Multi Multi: brak godzin losowań</h2><p>Dodaj w wierszach godzinę 14:00 albo 22:00, aby porównać losowania popołudniowe i wieczorne/nocne.</p></div>'; let sd=stats(day,gs), sn=stats(night,gs); let rd=repeatStatsFor(day), rn=repeatStatsFor(night), tr=transitionRepeats(ds); let expected=g.drawn*g.drawn/g.pool; let html=`<div class="card"><h2>Multi Multi: 14:00 vs 22:00</h2><table><tr><th>Zakres</th><th>Liczba losowań</th><th>Śr. powtórzeń względem poprzedniego w tym samym zakresie</th><th>Oczekiwanie losowe</th></tr><tr><td>Popołudniowe 14:00</td><td>${day.length}</td><td>${avg(rd).toFixed(2)}</td><td>${expected.toFixed(2)}</td></tr><tr><td>Wieczorne/nocne 22:00</td><td>${night.length}</td><td>${avg(rn).toFixed(2)}</td><td>${expected.toFixed(2)}</td></tr></table></div>`; html+=`<div class="card"><h2>Powtarzalność po danych losowaniach</h2><table><tr><th>Przejście</th><th>Liczba porównań</th><th>Średnia powtórzonych liczb</th><th>Minimum</th><th>Maksimum</th></tr>${Object.entries(tr).map(([k,v])=>`<tr><td>${k}</td><td>${v.length}</td><td>${avg(v).toFixed(2)}</td><td>${v.length?Math.min(...v):'-'}</td><td>${v.length?Math.max(...v):'-'}</td></tr>`).join('')}</table><p class="muted small">14→22 oznacza, ile liczb z losowania o 14:00 powtórzyło się w najbliższym losowaniu o 22:00; 22→14 analogicznie dla następnego dnia lub następnego wpisu w bazie.</p></div>`; html+=`<div class="card"><h2>Największe różnice częstości liczb: 14:00 minus 22:00</h2><table><tr><th>Liczba</th><th>14:00</th><th>22:00</th><th>Różnica</th></tr>${diffRows(sd.nums,sn.nums,n)}</table></div>`; html+=`<div class="card"><h2>Największe różnice par: 14:00 minus 22:00</h2><table><tr><th>Para</th><th>14:00</th><th>22:00</th><th>Różnica</th></tr>${diffRows(sd.pairs,sn.pairs,Math.min(n,30))}</table></div>`; html+=`<div class="card"><h2>Największe różnice paczek po ${gs}: 14:00 minus 22:00</h2><table><tr><th>Paczka</th><th>14:00</th><th>22:00</th><th>Różnica</th></tr>${diffRows(sd.groups,sn.groups,Math.min(n,30))}</table></div>`; return html}
+
+function combNumber(n,k){return Number(comb(n,k));}
+function safeDiv(a,b){return b? a/b : 0}
+function zScore(obs,exp,varr){return varr>0 ? (obs-exp)/Math.sqrt(varr) : 0}
+function sigLabel(z){let a=Math.abs(z); if(a>=3) return 'silne odchylenie'; if(a>=2) return 'umiarkowane odchylenie'; if(a>=1.25) return 'lekkie odchylenie'; return 'w normie'}
+function lastSeenMap(ds,g){let m=new Map(); ds.forEach((d,i)=>d.nums.forEach(n=>m.set(n,i))); let last=ds.length-1; let out=new Map(); for(let n=1;n<=g.pool;n++) out.set(n, m.has(n)? last-m.get(n) : ds.length); return out}
+function avgGapMap(ds,g){let pos=new Map(); for(let n=1;n<=g.pool;n++) pos.set(n,[]); ds.forEach((d,i)=>d.nums.forEach(n=>pos.get(n)?.push(i))); let out=new Map(); for(let n=1;n<=g.pool;n++){let arr=pos.get(n)||[]; if(arr.length<2){out.set(n,null); continue} let gaps=[]; for(let i=1;i<arr.length;i++) gaps.push(arr[i]-arr[i-1]); out.set(n,avg(gaps));} return out}
+function recencyWeightedFreq(ds,g,halfLife){let out=new Map(); let lambda=Math.log(2)/Math.max(1,halfLife), last=ds.length-1; ds.forEach((d,i)=>{let w=Math.exp(-lambda*(last-i)); d.nums.forEach(n=>addCount(out,n,w));}); return out}
+function transitionScores(ds,g){let trans=new Map(); for(let i=1;i<ds.length;i++){let prev=ds[i-1].nums, cur=ds[i].nums; prev.forEach(a=>cur.forEach(b=>addCount(trans,a+'→'+b)));} let last=ds.at(-1)?.nums||[], scores=new Map(); last.forEach(a=>{for(let b=1;b<=g.pool;b++) addCount(scores,b,trans.get(a+'→'+b)||0)}); return scores}
+function advancedNumberRows(ds,g,n,halfLife){let st=stats(ds,3), rec=recencyWeightedFreq(ds,g,halfLife), delay=lastSeenMap(ds,g), gaps=avgGapMap(ds,g), trans=transitionScores(ds,g); let p=g.drawn/g.pool, exp=ds.length*p, varr=ds.length*p*(1-p); let maxRec=Math.max(1,...rec.values()), maxTrans=Math.max(1,...trans.values(),1); let rows=[]; for(let x=1;x<=g.pool;x++){let obs=st.nums.get(x)||0, z=zScore(obs,exp,varr), r=safeDiv(rec.get(x)||0,maxRec), d=delay.get(x)||0, gap=gaps.get(x), t=safeDiv(trans.get(x)||0,maxTrans); let delayScore=gap? Math.min(2, d/gap) : 1; let score=0.35*z + 2.0*r + 1.2*delayScore + 1.5*t; rows.push({x,obs,z,r,d,gap,t,score});}
+return rows.sort((a,b)=>b.score-a.score).slice(0,n);
+}
+function advancedPairRows(ds,g,n){let st=stats(ds,3), pairCount=combNumber(g.drawn,2), totalPairs=combNumber(g.pool,2), p=pairCount/totalPairs, exp=ds.length*p, varr=ds.length*p*(1-p); return [...st.pairs.entries()].map(([k,v])=>({k,v,z:zScore(v,exp,varr),exp})).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z)||b.v-a.v).slice(0,n)}
+function advancedGroupRows(ds,g,n,gs=3){let st=stats(ds,gs), groupCount=combNumber(g.drawn,gs), totalGroups=combNumber(g.pool,gs), p=groupCount/totalGroups, exp=ds.length*p, varr=ds.length*p*(1-p); return [...st.groups.entries()].map(([k,v])=>({k,v,z:zScore(v,exp,varr),exp})).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z)||b.v-a.v).slice(0,n)}
+function sumStats(ds){let sums=ds.map(d=>d.nums.reduce((a,b)=>a+b,0)); let m=avg(sums); let sd=Math.sqrt(avg(sums.map(x=>(x-m)*(x-m)))); return {m,sd,min:Math.min(...sums),max:Math.max(...sums)} }
+function interpretNumberRow(r){return `${sigLabel(r.z)}; opóźnienie ${r.d} los.; przejścia ${(r.t*100).toFixed(0)}%`}
+
+function poissonBinomZ(obs, trials, p){return zScore(obs, trials*p, trials*p*(1-p));}
+function slotLabel(s){return s==='14:00'?'14:00':(s==='22:00'?'22:00 / nocne':'dowolne');}
+function badgeForZ(z){let a=Math.abs(z); if(a>=3) return '<span class="badge good">silny sygnał</span>'; if(a>=2) return '<span class="badge mid">ciekawy sygnał</span>'; return '<span class="badge">szum</span>';}
+function fmtNum(x,d=2){return Number.isFinite(x)?x.toFixed(d):'-'}
+function getConditionedPairs(ds, g, opts={}){
+ const look=opts.look||1, condNum=opts.num||null, slot=opts.slot||'any', minSup=opts.minSup||3;
+ let base=stats(ds,3).nums, baseP=new Map(); for(let n=1;n<=g.pool;n++) baseP.set(n,(base.get(n)||0)/Math.max(1,ds.length));
+ let triggers=0, target=new Map(), pairGroups=new Map(), rangeHits=new Map(), examples=[];
+ for(let i=0;i<ds.length-1;i++){
+  let prev=ds[i];
+  if(condNum && !prev.nums.includes(condNum)) continue;
+  if(slot!=='any' && prev.slot!==slot) continue;
+  triggers++;
+  for(let step=1;step<=look && i+step<ds.length;step++){
+   let cur=ds[i+step];
+   cur.nums.forEach(n=>addCount(target,n));
+   combos(cur.nums,2).forEach(c=>addCount(pairGroups,c));
+   let rsize=+(rangeSize?.value||10); cur.nums.forEach(n=>{let a=Math.floor((n-1)/rsize)*rsize+1, b=Math.min(g.pool,a+rsize-1); addCount(rangeHits,`${a}-${b}`);});
+   if(examples.length<5) examples.push(`${formatDraw(prev)} → ${formatDraw(cur)}`);
+  }
+ }
+ let trials=triggers*look;
+ let rows=[]; for(let n=1;n<=g.pool;n++){let obs=target.get(n)||0, bp=baseP.get(n)||0, cp=safeDiv(obs,trials), lift=safeDiv(cp,bp||1/g.pool), z=poissonBinomZ(obs,trials,bp||g.drawn/g.pool); if(obs>=minSup) rows.push({n,obs,bp,cp,lift,z});}
+ rows.sort((a,b)=>b.lift-a.lift || Math.abs(b.z)-Math.abs(a.z) || b.obs-a.obs);
+ let groups=[...pairGroups.entries()].filter(x=>x[1]>=minSup).map(([k,v])=>({k,v,rate:safeDiv(v,trials)})).sort((a,b)=>b.rate-a.rate||b.v-a.v);
+ let ranges=[...rangeHits.entries()].filter(x=>x[1]>=minSup).map(([k,v])=>({k,v,rate:safeDiv(v,trials)})).sort((a,b)=>b.rate-a.rate||b.v-a.v);
+ return {triggers,trials,rows,groups,ranges,examples};
+}
+function autoConditionalSignals(ds,g,minSup=5,top=20){
+ let base=stats(ds,3).nums, baseP=new Map(); for(let n=1;n<=g.pool;n++) baseP.set(n,(base.get(n)||0)/Math.max(1,ds.length));
+ let rows=[];
+ for(let a=1;a<=g.pool;a++){
+  let triggers=0, targets=new Map();
+  for(let i=0;i<ds.length-1;i++){if(!ds[i].nums.includes(a)) continue; triggers++; ds[i+1].nums.forEach(b=>addCount(targets,b));}
+  if(triggers<minSup) continue;
+  for(let b=1;b<=g.pool;b++){let obs=targets.get(b)||0; if(obs<minSup) continue; let bp=baseP.get(b)||g.drawn/g.pool, cp=obs/triggers, lift=cp/(bp||1/g.pool), z=poissonBinomZ(obs,triggers,bp); rows.push({a,b,triggers,obs,cp,lift,z});}
+ }
+ return rows.sort((x,y)=>y.lift-x.lift||Math.abs(y.z)-Math.abs(x.z)||y.obs-x.obs).slice(0,top);
+}
+function slotConditionalSignals(ds,g,minSup=5,top=20){
+ let out=[]; ['14:00','22:00'].forEach(slot=>{
+  let r=getConditionedPairs(ds,g,{slot,minSup,look:1}); r.rows.slice(0,top).forEach(x=>out.push({...x,slot,triggers:r.triggers}));
+ });
+ return out.sort((a,b)=>b.lift-a.lift||Math.abs(b.z)-Math.abs(a.z)).slice(0,top);
+}
+function conditionalScoreMap(ds,g){
+ let sc=new Map(); let rows=autoConditionalSignals(ds,g,Math.max(3,Math.ceil(ds.length*0.02)),80); rows.forEach(r=>addCount(sc,r.b,Math.max(0,r.lift-1)*Math.max(1,Math.abs(r.z))));
+ let last=ds[ds.length-1]; if(last){let lastSet=new Set(last.nums); rows.filter(r=>lastSet.has(r.a)).forEach(r=>addCount(sc,r.b,Math.max(0,r.lift-1)*2+Math.max(0,r.z)));}
+ return sc;
+}
+
+function wilsonLowerBound(k,n,z=3.290526731){
+ if(n<=0) return 0;
+ const phat=k/n, z2=z*z;
+ const denom=1+z2/n;
+ const centre=phat+z2/(2*n);
+ const margin=z*Math.sqrt((phat*(1-phat)+z2/(4*n))/n);
+ return Math.max(0,(centre-margin)/denom);
+}
+function eventContainsSet(draw,set){let s=new Set(draw.nums); return set.every(x=>s.has(x));}
+function getNextDraws(ds,i,look){let out=[]; for(let j=1;j<=look && i+j<ds.length;j++) out.push(ds[i+j]); return out;}
+function rangeLabelFor(n,size){let a=Math.floor((n-1)/size)*size+1, b=a+size-1; return a+'–'+b;}
+function ultraRepeatModel(ds,g,{minCases=8,look=1,rangeSizeVal=10}={}){
+ const baseDraws=ds.length-1;
+ const baseP=g.drawn/g.pool;
+ let rules=[];
+ function addRule(type,signal,target,cases,hits,extra={}){
+   if(cases<minCases || hits<=0) return;
+   const p=hits/cases, lb=wilsonLowerBound(hits,cases), lift=p/baseP, lbLift=lb/baseP;
+   const z=poissonBinomZ(hits,cases,baseP);
+   const strength = lbLift*Math.log1p(cases)*Math.max(0,z);
+   rules.push({type,signal,target,cases,hits,p,lb,lift,lbLift,z,strength,...extra});
+ }
+ for(let a=1;a<=g.pool;a++){
+   let cases=0, counts=new Map(), rangeCounts=new Map();
+   for(let i=0;i<ds.length-1;i++){
+     if(!ds[i].nums.includes(a)) continue;
+     const nexts=getNextDraws(ds,i,look); if(!nexts.length) continue; cases++;
+     let seen=new Set(); nexts.forEach(d=>d.nums.forEach(x=>seen.add(x)));
+     seen.forEach(x=>{addCount(counts,x); addCount(rangeCounts,rangeLabelFor(x,rangeSizeVal));});
+   }
+   counts.forEach((v,b)=>addRule('liczba→liczba','po '+a,b,cases,v,{a,b}));
+   rangeCounts.forEach((v,r)=>addRule('liczba→przedział','po '+a,r,cases,v,{a,range:r}));
+ }
+ ['14:00','22:00'].forEach(slot=>{
+   let cases=0, counts=new Map(), rangeCounts=new Map();
+   for(let i=0;i<ds.length-1;i++){
+     if(ds[i].slot!==slot) continue;
+     const nexts=getNextDraws(ds,i,look); if(!nexts.length) continue; cases++;
+     let seen=new Set(); nexts.forEach(d=>d.nums.forEach(x=>seen.add(x)));
+     seen.forEach(x=>{addCount(counts,x); addCount(rangeCounts,rangeLabelFor(x,rangeSizeVal));});
+   }
+   counts.forEach((v,b)=>addRule('czas→liczba','po '+slot,b,cases,v,{slot,b}));
+   rangeCounts.forEach((v,r)=>addRule('czas→przedział','po '+slot,r,cases,v,{slot,range:r}));
+ });
+ // reguły grupa z ostatniego losowania -> liczba w kolejnym losowaniu
+ const last=ds[ds.length-1];
+ let live=[];
+ if(last){
+   const lastNums=last.nums.slice();
+   for(const a of lastNums){
+     for(let i=0;i<ds.length-1;i++){
+       if(!ds[i].nums.includes(a)) continue;
+     }
+   }
+ }
+ rules=rules.filter(r=>Number.isFinite(r.strength)).sort((x,y)=>y.strength-x.strength||y.lbLift-x.lbLift||y.cases-x.cases);
+ const strong=rules.filter(r=>r.lbLift>1 && r.z>2.58);
+ const liveRules=last?strong.filter(r=> (r.a&&last.nums.includes(r.a)) || (r.slot&&last.slot===r.slot) ).slice(0,30):[];
+ let candidates=new Map();
+ liveRules.forEach(r=>{ if(typeof r.target==='number') addCount(candidates,r.target,Math.max(0,r.lbLift-1)*Math.max(1,r.z)*Math.log1p(r.cases)); });
+ return {rules:rules.slice(0,80), strong:strong.slice(0,40), liveRules, candidates:[...candidates.entries()].sort((a,b)=>b[1]-a[1]).slice(0,g.drawn)};
+}
+function ultraHtml(ds,g){
+ const minCases=Math.max(+minSupport.value||8,8), look=+lookAhead.value||1, rSize=+rangeSize.value||10;
+ const m=ultraRepeatModel(ds,g,{minCases,look,rangeSizeVal:rSize});
+ let html=`<div class="card ultra result"><h2>Tryb 99,9%: filtr silnych powtórzeń</h2><p><b>To nie jest 99,9% szansy trafienia.</b> To filtr, który pokazuje tylko takie reguły historyczne, dla których dolna granica 99,9% przedziału ufności nadal jest lepsza od średniej losowej. Innymi słowy: aplikacja szuka wzorców typu „po A częściej wypada B”, ale bardzo surowo odcina przypadkowe szumy.</p><p>Znaleziono <b>${m.strong.length}</b> silnych reguł po filtrze. Kandydaci aktywni po ostatnim losowaniu: <b>${m.candidates.map(x=>x[0]).join(', ')||'brak — potrzeba większej bazy albo godzin 14:00/22:00'}</b>.</p></div>`;
+ html+=`<div class="card"><h2>Najsilniejsze reguły po filtrze 99,9%</h2><table><tr><th>Typ</th><th>Sygnał</th><th>Cel</th><th>Przypadki</th><th>Trafienia po sygnale</th><th>Prawd. hist.</th><th>Dolna granica 99,9%</th><th>Lift ostrożny</th><th>Z-score</th></tr>${m.strong.map(r=>`<tr><td>${r.type}</td><td>${r.signal}</td><td class="score">${r.target}</td><td>${r.cases}</td><td>${r.hits}</td><td>${fmtPct(r.p)}</td><td>${fmtPct(r.lb)}</td><td class="score">${fmtNum(r.lbLift,2)}x</td><td>${fmtNum(r.z,2)}</td></tr>`).join('')}</table>${m.strong.length?'':'<p class="card warn">Brak reguł spełniających filtr 99,9%. To dobry znak ostrożności: baza nie potwierdza jeszcze wystarczająco mocnego wzorca.</p>'}</div>`;
+ html+=`<div class="card"><h2>Reguły aktywne po ostatnim wpisanym losowaniu</h2><table><tr><th>Sygnał z ostatniego losowania</th><th>Cel na kolejne losowanie</th><th>Przypadki</th><th>Prawd. hist.</th><th>Dolna granica 99,9%</th><th>Lift ostrożny</th><th>Z-score</th></tr>${m.liveRules.map(r=>`<tr><td>${r.signal}</td><td class="score">${r.target}</td><td>${r.cases}</td><td>${fmtPct(r.p)}</td><td>${fmtPct(r.lb)}</td><td class="score">${fmtNum(r.lbLift,2)}x</td><td>${fmtNum(r.z,2)}</td></tr>`).join('')}</table></div>`;
+ html+=`<div class="card danger small"><b>Uczciwy wniosek:</b> jeżeli losowanie jest technicznie uczciwe i niezależne, żadna historia nie daje realnej gwarancji. Ten moduł robi najlepszą rzecz, jaką da się zrobić matematycznie: szuka powtarzalnych zależności warunkowych i pokazuje tylko te, które przeszły bardzo surowy test.</div>`;
+ return html;
+}
+
+advancedBtn.onclick=()=>{const g=games[advGame.value], ds=parseDraws(draws.value), n=+advTopN.value, hl=+halfLife.value, minSup=+minSupport.value||5; if(ds.length<10){advancedOut.innerHTML='<div class="card warn">Do sensownej zaawansowanej analizy wklej przynajmniej 10 losowań. Im więcej, tym mniejszy szum.</div>'; return} const nums=advancedNumberRows(ds,g,n,hl), pairs=advancedPairRows(ds,g,n), groups=advancedGroupRows(ds,g,Math.min(n,30),3), ss=sumStats(ds); let expectedRepeat=g.drawn*g.drawn/g.pool; let condNumVal=conditionNum.value?+conditionNum.value:null; let cond=getConditionedPairs(ds,g,{num:condNumVal,slot:conditionSlot.value,look:+lookAhead.value,minSup}); let auto=autoConditionalSignals(ds,g,minSup,Math.min(n,40)); let slotSig=slotConditionalSignals(ds,g,minSup,Math.min(n,30)); let html=`<div class="card ok result"><b>Model matematyczny dla ${ds.length} losowań.</b><br>Oczekiwana liczba powtórek z poprzedniego losowania: <b>${expectedRepeat.toFixed(2)}</b>. Typowy zakres sumy liczb w Twojej bazie: <b>${Math.round(ss.m-ss.sd)}–${Math.round(ss.m+ss.sd)}</b> (średnia ${ss.m.toFixed(1)}).<br><span class="small muted">Lift &gt; 1 oznacza, że po spełnieniu warunku liczba występowała częściej niż w całej bazie; Z-score mierzy siłę odchylenia.</span></div>`;
+html+=`<div class="card"><h2>Ranking liczb: Z-score + świeżość + opóźnienie + przejścia</h2><table><tr><th>Liczba</th><th>Wystąpienia</th><th>Z-score</th><th>Świeżość</th><th>Opóźnienie</th><th>Śr. przerwa</th><th>Model przejść</th><th>Wynik</th><th>Wniosek</th></tr>${nums.map(r=>`<tr><td class="score">${r.x}</td><td>${r.obs}</td><td>${r.z.toFixed(2)}</td><td>${(r.r*100).toFixed(0)}%</td><td>${r.d}</td><td>${r.gap?fmtNum(r.gap,1):'-'}</td><td>${(r.t*100).toFixed(0)}%</td><td class="score">${r.score.toFixed(2)}</td><td>${sigLabel(r.z)}</td></tr>`).join('')}</table></div>`;
+html+=`<div class="card step"><h2>Warunek użytkownika: ${condNumVal?'po liczbie '+condNumVal:'po dowolnej liczbie'} / ${slotLabel(conditionSlot.value)}</h2><p class="small muted">Liczba przypadków warunku: <b>${cond.triggers}</b>, liczba sprawdzonych następnych losowań: <b>${cond.trials}</b>. To odpowiada pytaniu: „co historycznie pojawiało się po tym sygnale?”.</p><table><tr><th>Liczba po warunku</th><th>Ile razy</th><th>Prawd. warunkowe</th><th>Średnio w bazie</th><th>Lift</th><th>Z-score</th><th>Ocena</th></tr>${cond.rows.slice(0,n).map(r=>`<tr><td class="score">${r.n}</td><td>${r.obs}</td><td>${fmtPct(r.cp)}</td><td>${fmtPct(r.bp)}</td><td class="score">${fmtNum(r.lift,2)}x</td><td>${fmtNum(r.z,2)}</td><td>${badgeForZ(r.z)}</td></tr>`).join('')}</table>${cond.rows.length?'':'<p class="warn card">Za mało przypadków dla ustawionego warunku. Zmniejsz minimalną liczbę przypadków albo użyj większej bazy.</p>'}</div>`;
+html+=`<div class="card"><h2>Najczęstsze grupy i przedziały po tym warunku</h2><div class="grid"><div class="col6"><table><tr><th>Para w następnym losowaniu</th><th>Ile razy</th><th>Częstość na przypadek</th></tr>${cond.groups.slice(0,Math.min(n,30)).map(r=>`<tr><td>${r.k}</td><td>${r.v}</td><td>${fmtPct(r.rate)}</td></tr>`).join('')}</table></div><div class="col6"><table><tr><th>Przedział</th><th>Ile trafień</th><th>Częstość na przypadek</th></tr>${cond.ranges.slice(0,Math.min(n,30)).map(r=>`<tr><td>${r.k}</td><td>${r.v}</td><td>${fmtPct(r.rate)}</td></tr>`).join('')}</table></div></div></div>`;
+html+=`<div class="card"><h2>Automatycznie znalezione zależności: po A częściej pojawia się B</h2><table><tr><th>Po liczbie A</th><th>Pojawia się B</th><th>Przypadki A</th><th>B po A</th><th>Prawd. B|A</th><th>Lift</th><th>Z-score</th></tr>${auto.map(r=>`<tr><td>${r.a}</td><td class="score">${r.b}</td><td>${r.triggers}</td><td>${r.obs}</td><td>${fmtPct(r.cp)}</td><td class="score">${fmtNum(r.lift,2)}x</td><td>${fmtNum(r.z,2)}</td></tr>`).join('')}</table></div>`;
+html+=`<div class="card"><h2>Wzorce dzienne/nocne: po 14:00 albo po 22:00</h2><table><tr><th>Po losowaniu</th><th>Liczba</th><th>Przypadki</th><th>Ile razy potem</th><th>Prawd. warunkowe</th><th>Lift</th><th>Z-score</th></tr>${slotSig.map(r=>`<tr><td>${slotLabel(r.slot)}</td><td class="score">${r.n}</td><td>${r.triggers}</td><td>${r.obs}</td><td>${fmtPct(r.cp)}</td><td class="score">${fmtNum(r.lift,2)}x</td><td>${fmtNum(r.z,2)}</td></tr>`).join('')}</table><p class="small muted">Ta tabela działa najlepiej, gdy w danych Multi Multi wpisujesz godziny 14:00 i 22:00.</p></div>`;
+html+=`<div class="card"><h2>Pary z największym odchyleniem od losowości</h2><table><tr><th>Para</th><th>Wystąpienia</th><th>Oczekiwane</th><th>Z-score</th><th>Wniosek</th></tr>${pairs.map(r=>`<tr><td>${r.k}</td><td>${r.v}</td><td>${r.exp.toFixed(2)}</td><td class="score">${r.z.toFixed(2)}</td><td>${sigLabel(r.z)}</td></tr>`).join('')}</table></div>`;
+html+=`<div class="card"><h2>Trójki z największym odchyleniem</h2><table><tr><th>Trójka</th><th>Wystąpienia</th><th>Oczekiwane</th><th>Z-score</th><th>Wniosek</th></tr>${groups.map(r=>`<tr><td>${r.k}</td><td>${r.v}</td><td>${r.exp.toFixed(3)}</td><td class="score">${r.z.toFixed(2)}</td><td>${sigLabel(r.z)}</td></tr>`).join('')}</table></div>`;
+html+=`<div class="card warn small"><b>Jak czytać wyniki?</b> Lift pokazuje powtarzalność warunkową, a Z-score pokazuje, czy skala odchylenia jest większa niż typowy szum. Przy wielu liczbach/parach część sygnałów może być przypadkowa, dlatego aplikacja pokazuje też liczbę przypadków i minimalne wsparcie.</div>`;
+advancedOut.innerHTML=html;}
+ultraBtn.onclick=()=>{const g=games[advGame.value], ds=parseDraws(draws.value); if(ds.length<30){advancedOut.innerHTML='<div class="card warn">Do trybu 99,9% potrzeba przynajmniej 30 losowań, a najlepiej kilkaset. Wklej większą bazę, żeby filtr miał sens.</div>'; return} advancedOut.innerHTML=ultraHtml(ds,g);}
+copyBestToGeneratorBtn.onclick=()=>{genGame.value=advGame.value; strategy.value='conditional'; genMode.value='sets'; syncGen(); document.querySelector('.tab[data-tab="generator"]').click(); genOut.innerHTML='<div class="card ok">Generator ustawiony na strategię warunkową. Kliknij „Generuj”, aby użyć zależności po liczbach oraz wzorców dziennych/nocnych.</div>';}
+
+demoBtn.onclick=()=>{draws.value='2026-05-30 14:00: 1 5 8 10 12 14 18 22 25 28 31 34 39 42 44 51 60 62 70 79\n2026-05-30 22:00: 2 5 9 10 12 15 18 21 25 29 31 35 40 42 45 51 61 63 70 80\n2026-05-31 14:00: 1 6 8 11 12 16 18 22 26 28 32 34 39 43 44 52 60 64 71 79\n2026-05-31 22:00: 3 5 8 10 13 14 19 22 25 30 31 36 41 42 44 53 60 62 72 78';}
+saveDbBtn.onclick=()=>{localStorage.setItem('lottoDb:'+histGame.value,draws.value); fetchOut.innerHTML='<div class="card ok">Baza zapisana lokalnie dla tej gry.</div>'}
+loadDbBtn.onclick=()=>{draws.value=localStorage.getItem('lottoDb:'+histGame.value)||''; fetchOut.innerHTML='<div class="card ok">Wczytano lokalną bazę dla tej gry.</div>'}
+clearDbBtn.onclick=()=>{draws.value=''; histOut.innerHTML=''; fetchOut.innerHTML='';}
+const publicSources={
+  lotto:{official:['https://www.lotto.pl/lotto/wyniki-i-wygrane','https://app.lotto.pl/wyniki/?type=dl'], fallback:['https://www.mbnet.com.pl/wyniki.htm','https://pewniaki.pl/wyniki-lotto/','https://pewniaki.pl/lotto/wyniki/']},
+  lottoPlus:{official:['https://www.lotto.pl/lotto/wyniki-i-wygrane','https://app.lotto.pl/wyniki/?type=lp'], fallback:['https://pewniaki.pl/lotto-plus/wyniki/','https://pewniaki.pl/wyniki-lotto/']},
+  euro:{official:['https://www.lotto.pl/eurojackpot/wyniki-i-wygrane/','https://app.lotto.pl/wyniki/?type=ej'], fallback:['https://pewniaki.pl/eurojackpot/wyniki/','https://www.mbnet.com.pl/wyniki.htm']},
+  multi:{official:['https://www.lotto.pl/multi-multi/wyniki-i-wygrane','https://app.lotto.pl/wyniki/?type=mm22','https://app.lotto.pl/wyniki/?type=mm14'], fallback:['https://pewniaki.pl/multi-multi/wyniki/']},
+  multiPlus:{official:['https://www.lotto.pl/multi-multi/wyniki-i-wygrane'], fallback:['https://pewniaki.pl/multi-multi-plus/wyniki/','https://pewniaki.pl/multi-multi/wyniki/']},
+  mini:{official:['https://www.lotto.pl/mini-lotto/wyniki-i-wygrane','https://app.lotto.pl/wyniki/?type=el'], fallback:['https://www.mbnet.com.pl/wyniki.htm','https://pewniaki.pl/mini-lotto/wyniki/']},
+  kaskada:{official:['https://www.lotto.pl/kaskada/wyniki-i-wygrane'], fallback:['https://pewniaki.pl/kaskada/wyniki/']},
+  pensja:{official:['https://www.lotto.pl/ekstra-pensja/wyniki-i-wygrane','https://app.lotto.pl/wyniki/?type=ep'], fallback:['https://pewniaki.pl/ekstra-pensja/wyniki/']},
+  premia:{official:['https://www.lotto.pl/ekstra-premia/wyniki-i-wygrane'], fallback:['https://pewniaki.pl/ekstra-premia/wyniki/']},
+  keno:{official:['https://www.lotto.pl/keno/wyniki-i-wygrane'], fallback:['https://pewniaki.pl/keno/wyniki/']},
+  szybkie600:{official:['https://www.lotto.pl/szybkie-600/wyniki-i-wygrane'], fallback:['https://pewniaki.pl/szybkie-600/wyniki/']},
+  superSzansa:{official:['https://www.lotto.pl/super-szansa/wyniki-i-wygrane','https://app.lotto.pl/wyniki/?type=ss22','https://app.lotto.pl/wyniki/?type=ss14'], fallback:['https://pewniaki.pl/super-szansa/wyniki/']}
+};
+const corsProxies=[u=>u, u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u), u=>'https://r.jina.ai/http://r.jina.ai/http://'.replace('http://r.jina.ai/http://','')+u.replace(/^https?:\/\//,'')];
+async function fetchTextAny(url){let lastErr=null; for(const wrap of corsProxies){const finalUrl=wrap(url); try{const res=await fetch(finalUrl,{headers:{accept:'text/html,application/json,text/plain,*/*'}}); if(!res.ok) throw new Error(res.status+' '+res.statusText); const txt=await res.text(); if(txt&&txt.trim().length>20) return {text:txt,url:finalUrl,source:url}; lastErr=new Error('Pusta odpowiedź');}catch(e){lastErr=e;}} throw lastErr||new Error('Nie udało się pobrać '+url);}
+function normalizeApi(data){let arr=Array.isArray(data)?data:(data.items||data.results||data.drawResults||[]); let out=[]; function walk(x){ if(!x||typeof x!=='object') return; let nums=x.resultsJson||x.results||x.numbers||x.drawNumbers||x.winningNumbers; let extra=x.specialResults||x.extraNumbers||x.extra||x.euroNumbers||[]; if(typeof nums==='string') nums=(nums.match(/\d+/g)||[]).map(Number); if(typeof extra==='string') extra=(extra.match(/\d+/g)||[]).map(Number); if(Array.isArray(nums)&&nums.every(v=>typeof v!=='object')) out.push({nums:nums.map(Number), extra:Array.isArray(extra)?extra.map(Number):[], date:x.drawDate||x.date||null, drawNo:x.drawSystemId||x.drawNo||x.id||null}); Object.values(x).forEach(v=>{if(Array.isArray(v)) v.forEach(walk); else if(v&&typeof v==='object') walk(v);}); } arr.forEach(walk); return cleanRows(out,games[histGame.value]); }
+function cleanRows(rows,g){let seen=new Set(); return rows.map(d=>({nums:(d.nums||[]).map(Number).filter(x=>Number.isFinite(x)&&x>=0&&x<=Math.max(g.pool,g.extraPool||0)), extra:(d.extra||[]).map(Number).filter(x=>Number.isFinite(x)&&x>=0&&x<=Math.max(g.pool,g.extraPool||0)), date:d.date||null, drawNo:d.drawNo||null, slot:d.slot||null})).map(d=>{if(g.type==='extra'&&d.extra.length===0&&d.nums.length>=g.drawn+g.extraDrawn){d.extra=d.nums.slice(g.drawn,g.drawn+g.extraDrawn); d.nums=d.nums.slice(0,g.drawn);} else d.nums=d.nums.slice(0,g.drawn); if(g.type==='digits') d.nums=d.nums.slice(0,g.drawn); else d.nums=[...new Set(d.nums)].slice(0,g.drawn).sort((a,b)=>a-b); d.extra=[...new Set(d.extra)].slice(0,g.extraDrawn||0).sort((a,b)=>a-b); return d;}).filter(d=>d.nums.length===g.drawn).filter(d=>{let key=formatDraw(d)+'|'+(d.date||''); if(seen.has(key)) return false; seen.add(key); return true;});}
+function parseRowsFromText(txt,g,sourceUrl=''){let rows=[]; const decoded=txt.replace(/&nbsp;/g,' ').replace(/&#x2F;/g,'/').replace(/&quot;/g,'"').replace(/<script/gi,'\n<script').replace(/<[^>]+>/g,' ').replace(/\s+/g,' '); try{let json=JSON.parse(txt); return normalizeApi(json);}catch(e){}
+ const jsonArrays=[...txt.matchAll(/\[(?:\s*\d{1,2}\s*,){4,25}\s*\d{1,2}\s*\]/g)].map(m=>m[0]); for(const a of jsonArrays){try{let nums=JSON.parse(a).map(Number); rows.push({nums});}catch(e){}}
+ const dateRe='(?:20\d{2}[-.\/]\d{1,2}[-.\/]\d{1,2}|\d{1,2}[-.\/]\d{1,2}[-.\/]20\d{2})'; const gameWords=(g.name.split('—')[0]+' '+(g.api||'')).replace(/[+]/g,' plus'); const contexts=[...decoded.matchAll(new RegExp('(?:'+dateRe+')?[^\n]{0,80}(?:'+gameWords.split(/\s+/).filter(Boolean).join('|')+')[^\n]{0,260}','gi'))].map(m=>m[0]); contexts.push(...decoded.match(new RegExp('(?:'+dateRe+')[^\n]{0,240}','g'))||[]); contexts.push(decoded.slice(0,2500));
+ for(const c of contexts){let nums=(c.match(/\b\d{1,2}\b/g)||[]).map(Number).filter(x=>x>=0&&x<=Math.max(g.pool,g.extraPool||0)); if(sourceUrl.includes('mbnet.com.pl')) nums=nums.filter(x=>x<=Math.max(g.pool,g.extraPool||0)); if(nums.length>=g.drawn){ if(g.type==='extra'&&nums.length>=g.drawn+(g.extraDrawn||0)) rows.push({nums:nums.slice(-1*(g.drawn+(g.extraDrawn||0)))}); else rows.push({nums:nums.slice(-g.drawn)}); }}
+ return cleanRows(rows,g);
+}
+function sourceLabel(url){if(url.includes('lotto.pl')) return 'oficjalna strona lotto.pl'; if(url.includes('mbnet')) return 'MBnet — archiwum wyników'; if(url.includes('pewniaki')) return 'Pewniaki.pl — wyniki'; return url;}
+async function fetchOpenApiRows(g){const key=apiKey.value.trim(); if(!key) throw new Error('brak klucza OpenAPI'); const params=new URLSearchParams({gameType:g.api,drawDate:(apiDate.value||new Date().toISOString().slice(0,10))+'T00:00:00Z',index:'1',size:String(apiSize.value||20),sort:'drawDate',order:apiOrder.value}); const url='https://developers.lotto.pl/api/open/v1/lotteries/draw-results/by-date-per-game?'+params; const res=await fetch(url,{headers:{accept:'application/json',secret:key}}); if(!res.ok) throw new Error('OpenAPI: '+res.status+' '+res.statusText); const data=await res.json(); const rows=normalizeApi(data); if(!rows.length) throw new Error('OpenAPI: brak wyników'); return {rows, source:'LOTTO OpenAPI'};}
+async function fetchLatestDraw({officialOnly=false}={}){const g=games[histGame.value], cfg=publicSources[histGame.value]||{official:g.page?[g.page]:[],fallback:[]}; const errors=[]; if(apiKey.value.trim()){try{return await fetchOpenApiRows(g);}catch(e){errors.push(e.message);}}
+ const list=[...(cfg.official||[]), ...(officialOnly?[]:(cfg.fallback||[]))]; for(const url of list){try{let got=await fetchTextAny(url); let rows=parseRowsFromText(got.text,g,got.source); if(rows.length) return {rows:rows.slice(0,Math.max(1,+apiSize.value||20)), source:sourceLabel(url), url}; errors.push(sourceLabel(url)+': nie rozpoznano liczb');}catch(e){errors.push(sourceLabel(url)+': '+e.message);}}
+ throw new Error(errors.join('; ')||'Brak skonfigurowanych źródeł dla tej gry.');}
+function putRowsIntoDb(rows,source){draws.value=(rows.map(formatDraw).join('\n')+'\n'+draws.value).trim(); fetchOut.innerHTML=`<div class="card ok">Pobrano ${rows.length} aktualne/ostatnie losowanie(a). Źródło: <b>${escapeHtml(source)}</b>. Dodano na początek bazy.</div>`;}
+fetchOfficialBtn.onclick=async()=>{fetchOut.innerHTML='<div class="card">Pobieranie aktualnego losowania: najpierw LOTTO/OpenAPI lub lotto.pl, potem źródła zapasowe...</div>'; try{const r=await fetchLatestDraw({officialOnly:false}); putRowsIntoDb(r.rows,r.source);}catch(e){fetchOut.innerHTML='<div class="card warn">Nie udało się pobrać wyników z internetu: '+escapeHtml(e.message)+'. Możliwe, że przeglądarka blokuje CORS albo zmienił się układ stron.</div>';}}
+fetchLottoPageBtn.onclick=async()=>{fetchOut.innerHTML='<div class="card">Pobieranie z publicznych źródeł zapasowych...</div>'; try{const r=await fetchLatestDraw({officialOnly:false}); putRowsIntoDb(r.rows,r.source);}catch(e){fetchOut.innerHTML='<div class="card warn">Nie udało się pobrać z fallbacków: '+escapeHtml(e.message)+'.</div>';}}
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function syncGen(){const g=games[genGame.value]; const poolMode=genMode.value==='pool'; genPick.max=g.maxPick; genPick.value=g.defaultPick; poolPick.max=g.pool; poolPick.value=Math.min(g.pool, Math.max(g.defaultPick, Math.min(12,g.pool))); document.querySelectorAll('.setOnly').forEach(el=>el.classList.toggle('hidden',poolMode)); document.querySelectorAll('.poolOnly').forEach(el=>el.classList.toggle('hidden',!poolMode)); document.querySelectorAll('.extraGen').forEach(el=>el.classList.toggle('hidden',g.type!=='extra'||poolMode)); document.querySelectorAll('.extraPoolOnly').forEach(el=>el.classList.toggle('hidden',g.type!=='extra'||!poolMode)); if(g.type==='extra'){genExtraPick.max=g.maxExtraPick; genExtraPick.value=g.defaultExtraPick; poolExtraPick.max=g.extraPool; poolExtraPick.value=Math.min(g.extraPool,g.defaultExtraPick);}}
+genGame.addEventListener('change',syncGen); genMode.addEventListener('change',syncGen); syncGen();
+function weightedPick(items, weights, k, noiseVal, allowRepeats=false){let chosen=[]; let pool=items.slice(); let w=weights.slice(); while(chosen.length<k&&pool.length){let total=w.reduce((a,b)=>a+Math.max(0.0001,b),0); let r=Math.random()*total, idx=0; for(;idx<w.length;idx++){r-=Math.max(0.0001,w[idx]); if(r<=0) break;} chosen.push(pool[idx]); if(!allowRepeats){pool.splice(idx,1); w.splice(idx,1);} if(noiseVal>0 && Math.random()<noiseVal) w=w.map(x=>x*(0.8+Math.random()*0.4));} return allowRepeats?chosen:chosen.sort((a,b)=>a-b)}
+
+function buildAdvancedModel(g, ds){
+ const st=stats(ds,3), nums=Array.from({length:g.pool},(_,i)=>i+1), rec=recencyWeightedFreq(ds,g,80), delay=lastSeenMap(ds,g), gaps=avgGapMap(ds,g), trans=transitionScores(ds,g);
+ const maxFreq=Math.max(1,...st.nums.values(),1), maxRec=Math.max(1,...rec.values(),1), maxTrans=Math.max(1,...trans.values(),1);
+ let pairBonus=new Map(); topMap(st.pairs,80).forEach(([k,v])=>k.split('-').forEach(n=>addCount(pairBonus,+n,v))); const maxPair=Math.max(1,...pairBonus.values(),1);
+ return nums.map(n=>{let hot=(st.nums.get(n)||0)/maxFreq, cold=1-hot, pair=(pairBonus.get(n)||0)/maxPair, r=(rec.get(n)||0)/maxRec, t=(trans.get(n)||0)/maxTrans, gap=gaps.get(n), d=delay.get(n)||0, delayScore=gap?Math.min(2,d/gap):1; return {n,hot,cold,pair,r,t,delayScore};});
+}
+function buildWeights(g, ds, mode){const model=buildAdvancedModel(g,ds), cMap=conditionalScoreMap(ds,g), maxC=Math.max(1,...cMap.values(),1); return model.map(o=>{let c=(cMap.get(o.n)||0)/maxC; if(mode==='hot') return 0.1+o.hot*10+o.r*2; if(mode==='cold') return 0.1+o.cold*8+o.delayScore*2; if(mode==='pairs') return 0.1+o.pair*8+o.t*3+o.hot*1.5; if(mode==='conditional') return 0.1+c*8+o.t*3+o.pair*2+o.r*1.5; if(mode==='math') return 0.1+o.hot*2+o.r*2+o.t*2+o.delayScore*2+o.pair*2+c*3; if(mode==='random') return 1; return 0.1+o.hot*3+o.cold*1.2+o.pair*3+o.r*2+o.t*2+o.delayScore*1.5+c*1.5;});}
+function balanceScore(set,g,ss){let even=set.filter(x=>x%2===0).length, low=set.filter(x=>x<=g.pool/2).length, sum=set.reduce((a,b)=>a+b,0); let evenTarget=set.length/2, lowTarget=set.length/2; let evenPenalty=Math.abs(even-evenTarget), lowPenalty=Math.abs(low-lowTarget); let sumPenalty=ss&&ss.sd?safeDiv(Math.abs(sum-ss.m),ss.sd):0; let sequential=0; for(let i=1;i<set.length;i++) if(set[i]===set[i-1]+1) sequential++; return 10-evenPenalty*1.5-lowPenalty*1.5-sumPenalty-sequential*1.2;}
+function scoreSet(set, st, g=null, ds=[]){let sc=0; set.forEach(n=>sc+=(st.nums.get(n)||0)); combos(set,2).forEach(c=>sc+=(st.pairs.get(c)||0)*2); combos(set,3).forEach(c=>sc+=(st.groups.get(c)||0)*3); if(g&&ds.length) sc+=balanceScore(set,g,sumStats(ds))*5; return Math.round(sc*100)/100;}
+generateBtn.onclick=()=>{const g=games[genGame.value], ds=parseDraws(draws.value), modeGen=genMode.value, count=+setsCount.value, noiseVal=+noise.value/100, mode=strategy.value; if(mode!=='random'&&ds.length<2){genOut.innerHTML='<div class="card warn">Najpierw pobierz albo wklej bazę losowań dla tej gry. Dla trybu czysto losowego baza nie jest potrzebna.</div>'; return} const st=stats(ds,3), nums=Array.from({length:g.pool},(_,i)=>g.allowRepeats?i:i+1), weights=buildWeights(g,ds,mode); if(modeGen==='pool'){let k=Math.min(+poolPick.value,g.pool); let main=weightedPick(nums,weights,k,noiseVal,!!g.allowRepeats); let extra=[]; if(g.type==='extra'){const extraNums=Array.from({length:g.extraPool},(_,i)=>i+1); let exWeights=extraNums.map(n=> mode==='random'||!st.extras.size?1:0.1+(st.extras.get(n)||0)); extra=weightedPick(extraNums,exWeights,Math.min(+poolExtraPick.value,g.extraPool),noiseVal,false);} genOut.innerHTML='<div class="card"><h2>Wygenerowana pula liczb</h2><p class="muted">To lista kandydatów do ręcznego wyboru albo gry systemowej, nie pełny kupon.</p><div class="nums">'+main.map(n=>`<span class="num">${n}</span>`).join('')+'</div>'+(extra.length?'<h2>Dodatkowe</h2><div class="nums">'+extra.map(n=>`<span class="num">${n}</span>`).join('')+'</div>':'')+'</div>'; return} const k=+genPick.value; let rows=[]; for(let i=0;i<count;i++){let main=weightedPick(nums,weights,k,noiseVal,!!g.allowRepeats); let extra=[]; if(g.type==='extra'){const extraNums=Array.from({length:g.extraPool},(_,i)=>i+1); let exWeights=extraNums.map(n=> mode==='random'||!st.extras.size?1:0.1+(st.extras.get(n)||0)); extra=weightedPick(extraNums,exWeights,+genExtraPick.value,noiseVal,false);} rows.push({main,extra,score:scoreSet(main,st,g,ds)});} rows.sort((a,b)=>b.score-a.score); genOut.innerHTML='<div class="card"><h2>Proponowane zestawy</h2><table><tr><th>#</th><th>Liczby</th><th>Dodatkowe</th><th>Ocena statystyczna</th></tr>'+rows.map((r,i)=>`<tr><td>${i+1}</td><td class="nums">${r.main.map(n=>`<span class="num">${n}</span>`).join('')}</td><td class="nums">${r.extra.map(n=>`<span class="num">${n}</span>`).join('')}</td><td class="score">${r.score}</td></tr>`).join('')+'</table></div>';}
+</script></body></html>
